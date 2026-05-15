@@ -79,34 +79,31 @@ export function isScubaCatPose(landmarks: NormalizedLandmark[][]): boolean {
 
 	const isNoseHoldHand = (hand: NormalizedLandmark[]) => {
 		const wrist = hand[0];
-		if (wrist.y > 0.8) return false;
+		
+		// Hand must be high up (near the face area)
+		if (wrist.y > 0.65) return false;
 
-		// Use the palm length (wrist to middle finger base) as a scale-invariant benchmark
 		const palmLength = getDist(wrist, hand[9]);
+		const middleTip = hand[12];
 
-		// Calculate straight-line distance from each fingertip to its own base joint (MCP)
-		// When fingers are extended, this distance is ~1.0 to 1.2x palmLength.
-		// When cupped or in a fist, this distance shrinks significantly.
-		const dIndex = getDist(hand[8], hand[5]);
-		const dMiddle = getDist(hand[12], hand[9]);
-		const dRing = getDist(hand[16], hand[13]);
-		const dPinky = getDist(hand[20], hand[17]);
+		// Check if the hand is generally extended (not a clinched fist)
+		const middleExtended = getDist(middleTip, hand[9]) > palmLength * 0.8;
+		if (!middleExtended) return false;
 
-		// A finger is considered curled/cupped if its tip is close to its base
-		const indexCurled = dIndex < palmLength * 0.7;
-		const middleCurled = dMiddle < palmLength * 0.7;
-		const ringCurled = dRing < palmLength * 0.7;
-		const pinkyCurled = dPinky < palmLength * 0.7;
+		// Calculate the direction the hand is pointing
+		const dx = Math.abs(middleTip.x - wrist.x);
+		const dy = Math.abs(middleTip.y - wrist.y);
 
-		// 1. Is the whole hand cupped over the mouth? (All fingers curled)
-		const isCuppedHand = indexCurled && middleCurled && ringCurled && pinkyCurled;
+		// CONDITION A: Hand is Horizontal (pointing sideways across the mouth/nose)
+		const isHorizontal = dx > dy;
 
-		// 2. Is it a tight nose pinch? (Thumb and Index touching, other fingers curled away)
-		const pinchDist = getDist(hand[4], hand[8]); // Thumb tip to Index tip
-		const isTightPinch = (pinchDist < palmLength * 0.35) && middleCurled && ringCurled && pinkyCurled;
+		// CONDITION B: Hand is Vertical (palm covering mouth) but fingers are grouped together.
+		// If fingers are spread wide (splayed), the distance between index and pinky is large.
+		// If grouped tightly over the mouth, the spread is small.
+		const indexPinkySpread = getDist(hand[8], hand[20]);
+		const isVerticalAndGrouped = (dy >= dx) && (indexPinkySpread < palmLength * 1.5);
 
-		// It must mathematically be a curled cup or a tight pinch, not just an open raised hand.
-		return isCuppedHand || isTightPinch;
+		return isHorizontal || isVerticalAndGrouped;
 	};
 
 	return landmarks.some(hand => isNoseHoldHand(hand));
