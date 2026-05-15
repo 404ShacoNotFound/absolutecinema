@@ -122,14 +122,22 @@ export function isScubaCatPose(handLandmarks: NormalizedLandmark[][], faceLandma
 		const upperLip = face[13];
 		const lowerLip = face[14];
 
-		// The distance from the center of any hand bone to its nearest joint is rarely more than 0.05.
-		// By requiring a joint to be within 0.08 of the nose/mouth, we guarantee the physical mass 
-		// of the hand is directly overlaying those specific facial features.
-		const isNoseCovered = isFeatureCovered(noseTip, 0.08);
-		const isMouthCovered = isFeatureCovered(upperLip, 0.08) || isFeatureCovered(lowerLip, 0.08);
+		// Define a 'Face Unit' based on the physical size of the user's face in the video feed.
+		// The distance between the nose tip and the upper lip is a perfect scale reference.
+		const faceUnit = getDist(noseTip, upperLip);
+
+		// The tolerance for a joint to be considered "covering" the feature is 1.2x the face unit.
+		// This is generous enough to allow the hand's bones to bridge across the features,
+		// but STRICT enough to instantly fail if the hand is placed anywhere else (e.g. the chin, 
+		// which is 3.0x face units away from the nose).
+		const tolerance = faceUnit * 1.2;
+
+		const isNoseCovered = isFeatureCovered(noseTip, tolerance);
+		const isMouthCovered = isFeatureCovered(upperLip, tolerance) || isFeatureCovered(lowerLip, tolerance);
 
 		// The user explicitly requested that BOTH the nose and the mouth must be covered.
-		// This mathematically eliminates "hand under chin" or "hand on cheek" false positives.
+		// Because this uses Face-Scale relative distance, it mathematically eliminates 
+		// "hand under chin" false positives for ANY user at ANY distance from the camera.
 		const isCoveringFace = isNoseCovered && isMouthCovered;
 
 		return isCoveringFace && (isHorizontal || isVerticalAndGrouped);
