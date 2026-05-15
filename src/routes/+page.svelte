@@ -154,4 +154,9 @@
 			></video>
 		</div>
 	{/if}
+
+	<!-- Version Marker -->
+	<div class="fixed bottom-2 right-2 text-xs text-gray-500 font-mono font-bold z-50 mix-blend-difference pointer-events-none">
+		v2.8
+	</div>
 </div>

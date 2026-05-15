@@ -145,23 +145,19 @@ export function isScubaCatPose(handLandmarks: NormalizedLandmark[][], faceLandma
 	};
 
 	const isShooingGunHand = (hand: NormalizedLandmark[]) => {
-		// User requested a simple vertical hand check: thumb is above index, middle, ring, and pinky.
-		// This represents a "sideways" hand (like a karate chop or shooing motion), 
-		// regardless of whether the fingers are curled or extended.
+		// User requested: "pointing to the camera type karate chop... straight up looking straight"
+		// When pointing at the camera, perspective distortion clumps the middle bases together.
+		// To be perfectly accurate but forgiving, we just ensure the hand is generally upright
+		// with the thumb at the top and the pinky at the bottom.
 		const thumbBase = hand[2];
-		const indexBase = hand[5];
 		const middleBase = hand[9];
-		const ringBase = hand[13];
 		const pinkyBase = hand[17];
 
-		// Y-coordinates: smaller means higher on the screen.
-		// We simply check if the bases of the fingers form a vertical stack from top to bottom.
-		const isThumbHighest = thumbBase.y < indexBase.y;
-		const isIndexAboveMiddle = indexBase.y < middleBase.y;
-		const isMiddleAboveRing = middleBase.y < ringBase.y;
-		const isRingAbovePinky = ringBase.y < pinkyBase.y;
+		// Simply check the macroscopic vertical stacking
+		const isThumbAboveMiddle = thumbBase.y < middleBase.y;
+		const isMiddleAbovePinky = middleBase.y < pinkyBase.y;
 
-		return isThumbHighest && isIndexAboveMiddle && isMiddleAboveRing && isRingAbovePinky;
+		return isThumbAboveMiddle && isMiddleAbovePinky;
 	};
 
 	const hand0 = handLandmarks[0];
