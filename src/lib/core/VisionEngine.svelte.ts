@@ -20,7 +20,6 @@ export class VisionEngine {
 	// Debounce mechanics
 	private consecutivePoseFrames = 0;
 	private readonly REQUIRED_FRAMES = 5; // Require 5 consecutive frames of the pose to trigger
-	private holdTimer: ReturnType<typeof setTimeout> | null = null;
 
 	async initialize(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
 		this.videoElement = video;
@@ -110,15 +109,8 @@ export class VisionEngine {
 	}
 
 	private triggerAbsoluteCinema() {
+		if (this.isAbsoluteCinema) return; // Wait until the current video finishes
 		this.isAbsoluteCinema = true;
-		
-		// Clear existing hold timer if re-triggered
-		if (this.holdTimer) clearTimeout(this.holdTimer);
-
-		// Auto-hide the GIF after 4 seconds of not doing the pose
-		this.holdTimer = setTimeout(() => {
-			this.isAbsoluteCinema = false;
-		}, 4000);
 	}
 
 	private drawOverlay(results: HandLandmarkerResult) {
@@ -184,7 +176,6 @@ export class VisionEngine {
 	destroy() {
 		// Clean up memory and hardware
 		if (this.animationFrameId !== null) cancelAnimationFrame(this.animationFrameId);
-		if (this.holdTimer) clearTimeout(this.holdTimer);
 		
 		if (this.stream) {
 			this.stream.getTracks().forEach(track => track.stop());

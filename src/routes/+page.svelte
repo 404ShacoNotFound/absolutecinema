@@ -53,9 +53,9 @@
 	</header>
 
 	<!-- Main Stage -->
-	<main class="relative w-full min-h-screen flex flex-col items-center justify-center p-8 pt-24 gap-8">
+	<main class="relative w-full h-screen flex items-center justify-center p-8">
 		<!-- Camera Feed Container -->
-		<div class="relative w-full max-w-3xl aspect-video shrink-0 rounded-3xl overflow-hidden shadow-2xl shadow-pink-500/10 border border-slate-800/60 bg-slate-900">
+		<div class="relative w-full max-w-5xl aspect-video rounded-3xl overflow-hidden shadow-2xl shadow-pink-500/10 border border-slate-800/60 bg-slate-900">
 			
 			<!-- Video element (Mirrored horizontally) -->
 			<video 
@@ -109,19 +109,25 @@
 			<div class="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-pink-500/50 rounded-bl-3xl"></div>
 			<div class="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-violet-500/50 rounded-br-3xl"></div>
 		</div>
-
-		<!-- The Absolute Cinema Output Container -->
-		<div class="w-full max-w-3xl h-64 shrink-0 flex items-center justify-center">
-			{#if engine.isAbsoluteCinema}
-				<div transition:scale="{{ start: 0.8, duration: 400, opacity: 0 }}">
-					<video 
-						src="/absolute-cinema.mp4" 
-						autoplay
-						playsinline
-						class="h-64 object-contain rounded-xl shadow-[0_0_150px_rgba(236,72,153,0.4)] drop-shadow-[0_0_50px_rgba(139,92,246,0.6)]"
-					></video>
-				</div>
-			{/if}
-		</div>
 	</main>
+
+	<!-- The Absolute Cinema Overlay -->
+	{#if engine.isAbsoluteCinema}
+		<!-- Dynamic Vignette/Darkening -->
+		<div class="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-40 transition-all duration-500" transition:fade></div>
+		
+		<!-- MP4 Container -->
+		<div 
+			class="absolute inset-0 flex items-center justify-center z-50 pointer-events-auto"
+			transition:scale="{{ start: 0.8, duration: 400, opacity: 0 }}"
+		>
+			<video 
+				src="/absolute-cinema.mp4" 
+				autoplay
+				playsinline
+				onended={() => { engine.isAbsoluteCinema = false; }}
+				class="w-full max-w-4xl rounded-xl shadow-[0_0_150px_rgba(236,72,153,0.4)] drop-shadow-[0_0_50px_rgba(139,92,246,0.6)]"
+			></video>
+		</div>
+	{/if}
 </div>
