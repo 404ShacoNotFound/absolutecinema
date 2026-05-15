@@ -1,5 +1,5 @@
 import { FilesetResolver, HandLandmarker, type HandLandmarkerResult } from '@mediapipe/tasks-vision';
-import { isAbsoluteCinemaPose } from './gestures';
+import { isAbsoluteCinemaPose, isScubaCatPose } from './gestures';
 
 export class VisionEngine {
 	// Reactive states
@@ -103,12 +103,15 @@ export class VisionEngine {
 
 	private processResults(results: HandLandmarkerResult) {
 		if (results.landmarks && results.landmarks.length > 0) {
-			const isPose = isAbsoluteCinemaPose(results.landmarks);
-
-			if (isPose) {
+			if (isAbsoluteCinemaPose(results.landmarks)) {
 				this.consecutivePoseFrames++;
 				if (this.consecutivePoseFrames >= this.REQUIRED_FRAMES) {
 					this.triggerAbsoluteCinema();
+				}
+			} else if (isScubaCatPose(results.landmarks)) {
+				this.consecutivePoseFrames++;
+				if (this.consecutivePoseFrames >= this.REQUIRED_FRAMES) {
+					this.triggerScubaCat();
 				}
 			} else {
 				this.consecutivePoseFrames = 0;
@@ -119,8 +122,13 @@ export class VisionEngine {
 	}
 
 	private triggerAbsoluteCinema() {
-		if (this.isAbsoluteCinema || this.isCooldown) return; // Wait until video finishes and cooldown clears
+		if (this.isAbsoluteCinema || this.isScubaCat || this.isCooldown) return; // Wait until video finishes and cooldown clears
 		this.isAbsoluteCinema = true;
+	}
+
+	private triggerScubaCat() {
+		if (this.isAbsoluteCinema || this.isScubaCat || this.isCooldown) return; // Wait until video finishes and cooldown clears
+		this.isScubaCat = true;
 	}
 
 	private drawOverlay(results: HandLandmarkerResult) {

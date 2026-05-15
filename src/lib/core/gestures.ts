@@ -66,3 +66,43 @@ export function isAbsoluteCinemaPose(landmarks: NormalizedLandmark[][]): boolean
 
 	return true;
 }
+
+/**
+ * Geometric logic to detect the "Scuba Cat" pose.
+ * Hand 1: Pinching nose (thumb and index close together).
+ * Hand 2: Gun/Shooing shape (thumb extended, index extended, others curled).
+ */
+export function isScubaCatPose(landmarks: NormalizedLandmark[][]): boolean {
+	if (!landmarks || landmarks.length !== 2) return false;
+
+	const isPinchNoseHand = (hand: NormalizedLandmark[]) => {
+		// Distance between thumb tip (4) and index tip (8) is very small
+		const getDist = (p1: NormalizedLandmark, p2: NormalizedLandmark) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+		const pinchDist = getDist(hand[4], hand[8]);
+		return pinchDist < 0.08; // Threshold for a tight pinch
+	};
+
+	const isGunHand = (hand: NormalizedLandmark[]) => {
+		// Gun shape: Thumb extended, Index extended, others curled.
+		const getDist = (p1: NormalizedLandmark, p2: NormalizedLandmark) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+		const wrist = hand[0];
+
+		const thumbExtended = getDist(hand[4], wrist) > getDist(hand[3], wrist);
+		const indexExtended = getDist(hand[8], wrist) > getDist(hand[6], wrist);
+		
+		const middleCurled = getDist(hand[12], wrist) < getDist(hand[10], wrist);
+		const ringCurled = getDist(hand[16], wrist) < getDist(hand[14], wrist);
+		const pinkyCurled = getDist(hand[20], wrist) < getDist(hand[18], wrist);
+
+		return thumbExtended && indexExtended && middleCurled && ringCurled && pinkyCurled;
+	};
+
+	const hand0 = landmarks[0];
+	const hand1 = landmarks[1];
+
+	// Ensure one hand is pinching and the other is the gun
+	const match1 = isPinchNoseHand(hand0) && isGunHand(hand1);
+	const match2 = isPinchNoseHand(hand1) && isGunHand(hand0);
+
+	return match1 || match2;
+}

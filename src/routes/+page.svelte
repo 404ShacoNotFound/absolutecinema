@@ -14,6 +14,7 @@
 		hasStarted = true;
 		// Proactive cache loading to prevent buffering on first trigger
 		fetch('/absolute-cinema.mp4');
+		fetch('/scuba-cat.mp4');
 		engine.initialize(videoElement, canvasElement);
 	}
 
@@ -24,6 +25,7 @@
 
 <svelte:head>
 	<link rel="preload" as="video" href="/absolute-cinema.mp4" type="video/mp4" />
+	<link rel="preload" as="video" href="/scuba-cat.mp4" type="video/mp4" />
 </svelte:head>
 
 <div class="min-h-screen bg-slate-50 text-black font-sans selection:bg-black selection:text-white overflow-hidden relative border-8 border-black">
@@ -126,6 +128,26 @@
 				autoplay
 				playsinline
 				onended={() => { engine.isAbsoluteCinema = false; engine.startCooldown(2000); }}
+				class="w-full max-w-4xl rounded-2xl shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] border-8 border-black bg-black"
+			></video>
+		</div>
+	{/if}
+
+	<!-- The Scuba Cat Overlay -->
+	{#if engine.isScubaCat}
+		<!-- Simple Darkening Overlay -->
+		<div class="absolute inset-0 bg-black/80 z-40" transition:fade></div>
+		
+		<!-- MP4 Container -->
+		<div 
+			class="absolute inset-0 flex items-center justify-center z-50 pointer-events-auto"
+			transition:scale="{{ start: 0.8, duration: 400, opacity: 0 }}"
+		>
+			<video 
+				src="/scuba-cat.mp4" 
+				autoplay
+				playsinline
+				onended={() => { engine.isScubaCat = false; engine.startCooldown(2000); }}
 				class="w-full max-w-4xl rounded-2xl shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] border-8 border-black bg-black"
 			></video>
 		</div>
