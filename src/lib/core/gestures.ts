@@ -157,7 +157,7 @@ export function isKoreanHeartPose(landmarks: NormalizedLandmark[][]): boolean {
 		const pinkyTip = hand[20];
 
 		// 1. STURDY CURL CHECK: Middle, Ring, and Pinky must be curled tightly into the palm.
-		// If they are pointing out, it's an OK sign, not a Korean Heart.
+		// By checking distance to the wrist, we ensure they aren't extended (like an OK sign).
 		const isCurled = (tip: NormalizedLandmark) => getDist(tip, wrist) < palmLength * 1.2;
 
 		if (!isCurled(middleTip) || !isCurled(ringTip) || !isCurled(pinkyTip)) {
@@ -165,18 +165,19 @@ export function isKoreanHeartPose(landmarks: NormalizedLandmark[][]): boolean {
 		}
 
 		// 2. PINCH/CROSS CHECK: Thumb tip and Index tip must be touching/overlapping.
+		// A distance of 0.3x palm length is extremely close.
 		const tipsDist = getDist(thumbTip, indexTip);
-		const areTipsTouching = tipsDist < palmLength * 0.4;
+		const areTipsTouching = tipsDist < palmLength * 0.3;
 
-		// 3. EXTENSION CHECK: Index and Thumb must be raised away from the palm.
-		const indexExtended = getDist(indexTip, wrist) > palmLength * 1.0;
-		const thumbExtended = getDist(thumbTip, wrist) > palmLength * 0.8;
+		// 3. RAISED FROM PALM: The crossed fingers must be held UP away from the palm.
+		// In a clenched fist, the index tip is crushed against the palm center. 
+		// In a Korean Heart, the pinch is formed at the top of the hand.
+		const indexRaised = getDist(indexTip, palmCenter) > palmLength * 0.5;
 
-		// 4. KOREAN HEART OVERLAP: In a true Korean Heart, the index finger arches 
-		// OVER the thumb to form the top of the heart.
-		const isIndexAboveThumb = indexTip.y < thumbTip.y;
-
-		return areTipsTouching && indexExtended && thumbExtended && isIndexAboveThumb;
+		// We no longer check Y-axis overlap or absolute extension distance,
+		// because if you point the heart at the camera, foreshortening compresses those 2D values.
+		// If the other fingers are curled, the tips are touching, and the tips are raised, it IS a Korean Heart!
+		return areTipsTouching && indexRaised;
 	};
 
 	// Accepts the gesture if ANY hand on screen is doing the Korean Heart
