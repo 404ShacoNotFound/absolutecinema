@@ -155,8 +155,27 @@
 		</div>
 	{/if}
 
+	<!-- The Oppa Overlay -->
+	{#if engine.isOppa}
+		<div class="absolute inset-0 bg-black/80 z-40" transition:fade></div>
+		
+		<div 
+			class="absolute inset-0 flex items-center justify-center z-50 pointer-events-auto"
+			transition:scale="{{ start: 0.8, duration: 400, opacity: 0 }}"
+		>
+			<!-- svelte-ignore a11y_media_has_caption -->
+			<video 
+				src="/oppa.mp4" 
+				autoplay
+				playsinline
+				onended={() => { engine.isOppa = false; engine.startCooldown(2000); }}
+				class="w-full max-w-4xl rounded-2xl shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] border-8 border-black bg-black"
+			></video>
+		</div>
+	{/if}
+
 	<!-- Version Marker -->
 	<div class="fixed bottom-2 left-1/2 -translate-x-1/2 text-xs text-gray-500 font-mono font-bold z-50 mix-blend-difference pointer-events-none">
-		v2.9
+		v3.0
 	</div>
 </div>

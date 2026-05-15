@@ -1,11 +1,12 @@
 import { FilesetResolver, HandLandmarker, type HandLandmarkerResult, FaceLandmarker, type FaceLandmarkerResult } from '@mediapipe/tasks-vision';
-import { isAbsoluteCinemaPose, isScubaCatPose } from './gestures';
+import { isAbsoluteCinemaPose, isScubaCatPose, isKoreanHeartPose } from './gestures';
 
 export class VisionEngine {
 	// Reactive states
 	isReady = $state(false);
 	isAbsoluteCinema = $state(false);
 	public isScubaCat = $state(false);
+	public isOppa = $state(false);
 	error = $state<string | null>(null);
 
 	// Internal references
@@ -22,6 +23,7 @@ export class VisionEngine {
 	// Debounce mechanics
 	private consecutiveCinemaFrames = 0;
 	private consecutiveScubaFrames = 0;
+	private consecutiveOppaFrames = 0;
 	private readonly REQUIRED_FRAMES = 3; // Reduced from 5 to 3 for better responsiveness on slow/dark webcams
 	public isCooldown = $state(false);
 	private cooldownTimer: ReturnType<typeof setTimeout> | null = null;
@@ -120,37 +122,54 @@ export class VisionEngine {
 		if (handResults.landmarks && handResults.landmarks.length > 0) {
 			const isScuba = isScubaCatPose(handResults.landmarks, faceResults.faceLandmarks);
 			const isCinema = isAbsoluteCinemaPose(handResults.landmarks);
+			const isHeart = isKoreanHeartPose(handResults.landmarks);
 
-			if (isScuba) {
+			if (isHeart) {
+				this.consecutiveOppaFrames++;
+				this.consecutiveScubaFrames = 0;
+				this.consecutiveCinemaFrames = 0;
+				if (this.consecutiveOppaFrames >= this.REQUIRED_FRAMES) {
+					this.triggerOppa();
+				}
+			} else if (isScuba) {
 				this.consecutiveScubaFrames++;
 				this.consecutiveCinemaFrames = 0;
+				this.consecutiveOppaFrames = 0;
 				if (this.consecutiveScubaFrames >= this.REQUIRED_FRAMES) {
 					this.triggerScubaCat();
 				}
 			} else if (isCinema) {
 				this.consecutiveCinemaFrames++;
 				this.consecutiveScubaFrames = 0;
+				this.consecutiveOppaFrames = 0;
 				if (this.consecutiveCinemaFrames >= this.REQUIRED_FRAMES) {
 					this.triggerAbsoluteCinema();
 				}
 			} else {
 				this.consecutiveCinemaFrames = 0;
 				this.consecutiveScubaFrames = 0;
+				this.consecutiveOppaFrames = 0;
 			}
 		} else {
 			this.consecutiveCinemaFrames = 0;
 			this.consecutiveScubaFrames = 0;
+			this.consecutiveOppaFrames = 0;
 		}
 	}
 
 	private triggerAbsoluteCinema() {
-		if (this.isAbsoluteCinema || this.isScubaCat || this.isCooldown) return; // Wait until video finishes and cooldown clears
+		if (this.isAbsoluteCinema || this.isScubaCat || this.isOppa || this.isCooldown) return;
 		this.isAbsoluteCinema = true;
 	}
 
 	private triggerScubaCat() {
-		if (this.isAbsoluteCinema || this.isScubaCat || this.isCooldown) return; // Wait until video finishes and cooldown clears
+		if (this.isAbsoluteCinema || this.isScubaCat || this.isOppa || this.isCooldown) return;
 		this.isScubaCat = true;
+	}
+
+	private triggerOppa() {
+		if (this.isAbsoluteCinema || this.isScubaCat || this.isOppa || this.isCooldown) return;
+		this.isOppa = true;
 	}
 
 	private drawOverlay(results: HandLandmarkerResult) {

@@ -134,3 +134,51 @@ export function isScubaCatPose(handLandmarks: NormalizedLandmark[][], faceLandma
 
 	return match1 || match2;
 }
+
+/**
+ * Detects the highly strict "Korean Heart" gesture: 
+ * Thumb and Index are crossed (tips overlapping), while Middle, Ring, and Pinky are tightly curled into the palm.
+ */
+export function isKoreanHeartPose(landmarks: NormalizedLandmark[][]): boolean {
+	if (!landmarks || landmarks.length === 0) return false;
+
+	const getDist = (p1: NormalizedLandmark, p2: NormalizedLandmark) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+
+	const isHeartHand = (hand: NormalizedLandmark[]) => {
+		const wrist = hand[0];
+		const palmCenter = hand[9];
+		const palmLength = getDist(wrist, palmCenter);
+
+		const thumbTip = hand[4];
+		const indexTip = hand[8];
+		
+		const middleTip = hand[12];
+		const ringTip = hand[16];
+		const pinkyTip = hand[20];
+
+		// 1. STURDY CURL CHECK: Middle, Ring, and Pinky must be curled tightly into the palm.
+		// If they are pointing out, it's an OK sign, not a Korean Heart.
+		const isCurled = (tip: NormalizedLandmark) => getDist(tip, wrist) < palmLength * 1.2;
+
+		if (!isCurled(middleTip) || !isCurled(ringTip) || !isCurled(pinkyTip)) {
+			return false;
+		}
+
+		// 2. PINCH/CROSS CHECK: Thumb tip and Index tip must be touching/overlapping.
+		const tipsDist = getDist(thumbTip, indexTip);
+		const areTipsTouching = tipsDist < palmLength * 0.4;
+
+		// 3. EXTENSION CHECK: Index and Thumb must be raised away from the palm.
+		const indexExtended = getDist(indexTip, wrist) > palmLength * 1.0;
+		const thumbExtended = getDist(thumbTip, wrist) > palmLength * 0.8;
+
+		// 4. KOREAN HEART OVERLAP: In a true Korean Heart, the index finger arches 
+		// OVER the thumb to form the top of the heart.
+		const isIndexAboveThumb = indexTip.y < thumbTip.y;
+
+		return areTipsTouching && indexExtended && thumbExtended && isIndexAboveThumb;
+	};
+
+	// Accepts the gesture if ANY hand on screen is doing the Korean Heart
+	return landmarks.some(hand => isHeartHand(hand));
+}
