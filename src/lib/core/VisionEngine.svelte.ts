@@ -21,7 +21,7 @@ export class VisionEngine {
 
 	// Debounce mechanics
 	private consecutivePoseFrames = 0;
-	private readonly REQUIRED_FRAMES = 5; // Require 5 consecutive frames of the pose to trigger
+	private readonly REQUIRED_FRAMES = 3; // Reduced from 5 to 3 for better responsiveness on slow/dark webcams
 	public isCooldown = $state(false);
 	private cooldownTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -51,9 +51,9 @@ export class VisionEngine {
 				},
 				runningMode: 'VIDEO',
 				numHands: 2,
-				minHandDetectionConfidence: 0.65,
-				minHandPresenceConfidence: 0.65,
-				minTrackingConfidence: 0.65
+				minHandDetectionConfidence: 0.4, // Lowered for noisy/dark webcams
+				minHandPresenceConfidence: 0.4,
+				minTrackingConfidence: 0.4
 			});
 
 			this.faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
@@ -62,16 +62,19 @@ export class VisionEngine {
 					delegate: 'GPU'
 				},
 				runningMode: 'VIDEO',
-				numFaces: 1
+				numFaces: 1,
+				minFaceDetectionConfidence: 0.4,
+				minFacePresenceConfidence: 0.4,
+				minTrackingConfidence: 0.4
 			});
 
 			// 3. Start Webcam
 			try {
 				this.stream = await navigator.mediaDevices.getUserMedia({
-					video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+					video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }
 				});
 			} catch (fallbackError) {
-				// Fallback for virtual webcams or devices that don't support facingMode
+				// Fallback for virtual webcams or devices that don't support facingMode/constraints
 				this.stream = await navigator.mediaDevices.getUserMedia({
 					video: true
 				});
