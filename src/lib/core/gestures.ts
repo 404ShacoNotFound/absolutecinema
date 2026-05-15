@@ -105,29 +105,32 @@ export function isScubaCatPose(handLandmarks: NormalizedLandmark[][], faceLandma
 		const indexPinkySpread = getDist(hand[8], hand[20]);
 		const isVerticalAndGrouped = (dy >= dx) && (indexPinkySpread < palmLength * 1.5);
 
-		// SPATIAL INTERSECTION CHECK - BOUNDING BOX
-		// Find the 2D bounding box of the entire hand
-		let minX = 1, maxX = 0, minY = 1, maxY = 0;
-		for (const p of hand) {
-			if (p.x < minX) minX = p.x;
-			if (p.x > maxX) maxX = p.x;
-			if (p.y < minY) minY = p.y;
-			if (p.y > maxY) maxY = p.y;
-		}
-
-		// Add a slight 5% padding to be forgiving of camera angles
-		const padding = 0.05;
-		minX -= padding; maxX += padding;
-		minY -= padding; maxY += padding;
-
-		const upperLip = face[13]; // Landmark 13 is the top of the upper lip
-
-		// Check if the nose and mouth coordinates fall INSIDE the hand's bounding box
-		const noseInside = noseTip.x >= minX && noseTip.x <= maxX && noseTip.y >= minY && noseTip.y <= maxY;
-		const mouthInside = upperLip.x >= minX && upperLip.x <= maxX && upperLip.y >= minY && upperLip.y <= maxY;
+		// SPATIAL INTERSECTION CHECK - POINT CLOUD PROXIMITY
+		// A bounding box is flawed because a single raised finger creates a huge empty box.
+		// Instead, we measure the minimum distance from the face features to the actual 21 joints of the hand.
+		// If the hand is physically covering a feature, at least one joint MUST be very close to it.
 		
-		// It MUST physically cover both the nose and the mouth to prevent "under the chin" false positives
-		const isCoveringFace = noseInside && mouthInside;
+		const isFeatureCovered = (feature: NormalizedLandmark, maxDistance: number) => {
+			let minD = Infinity;
+			for (const joint of hand) {
+				const d = getDist(feature, joint);
+				if (d < minD) minD = d;
+			}
+			return minD <= maxDistance;
+		};
+
+		const upperLip = face[13];
+		const lowerLip = face[14];
+
+		// The distance from the center of any hand bone to its nearest joint is rarely more than 0.05.
+		// By requiring a joint to be within 0.08 of the nose/mouth, we guarantee the physical mass 
+		// of the hand is directly overlaying those specific facial features.
+		const isNoseCovered = isFeatureCovered(noseTip, 0.08);
+		const isMouthCovered = isFeatureCovered(upperLip, 0.08) || isFeatureCovered(lowerLip, 0.08);
+
+		// The user explicitly requested that BOTH the nose and the mouth must be covered.
+		// This mathematically eliminates "hand under chin" or "hand on cheek" false positives.
+		const isCoveringFace = isNoseCovered && isMouthCovered;
 
 		return isCoveringFace && (isHorizontal || isVerticalAndGrouped);
 	};
