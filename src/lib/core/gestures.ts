@@ -145,19 +145,17 @@ export function isScubaCatPose(handLandmarks: NormalizedLandmark[][], faceLandma
 	};
 
 	const isShooingGunHand = (hand: NormalizedLandmark[]) => {
-		// User requested: "pointing to the camera type karate chop... straight up looking straight"
-		// When pointing at the camera, perspective distortion clumps the middle bases together.
-		// To be perfectly accurate but forgiving, we just ensure the hand is generally upright
-		// with the thumb at the top and the pinky at the bottom.
-		const thumbBase = hand[2];
+		// User requested extreme leniency because dancing causes the hand to tilt and bend rapidly.
+		// Instead of checking specific finger stacking, we just verify the hand is generally 
+		// pointing UP or SIDEWAYS (not upside down).
+		const wrist = hand[0];
 		const middleBase = hand[9];
-		const pinkyBase = hand[17];
 
-		// Simply check the macroscopic vertical stacking
-		const isThumbAboveMiddle = thumbBase.y < middleBase.y;
-		const isMiddleAbovePinky = middleBase.y < pinkyBase.y;
+		// As long as the wrist is generally below the knuckles (with a 10% leniency for 
+		// completely sideways hands), the hand is considered "raised and shooing".
+		const isGenerallyUpright = wrist.y > middleBase.y - 0.1;
 
-		return isThumbAboveMiddle && isMiddleAbovePinky;
+		return isGenerallyUpright;
 	};
 
 	const hand0 = handLandmarks[0];
