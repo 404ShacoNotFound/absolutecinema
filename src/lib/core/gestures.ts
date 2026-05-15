@@ -73,7 +73,8 @@ export function isAbsoluteCinemaPose(landmarks: NormalizedLandmark[][]): boolean
  * Hand 2: Gun/Shooing shape (thumb extended, index extended, others curled).
  */
 export function isScubaCatPose(handLandmarks: NormalizedLandmark[][], faceLandmarks?: NormalizedLandmark[][]): boolean {
-	if (!handLandmarks || handLandmarks.length === 0) return false;
+	// We now strictly require both hands to be visible for maximum accuracy
+	if (!handLandmarks || handLandmarks.length < 2) return false;
 	
 	// Ensure we have a face detected to verify the hand is actually covering the mouth/nose
 	if (!faceLandmarks || faceLandmarks.length === 0) return false;
@@ -143,5 +144,26 @@ export function isScubaCatPose(handLandmarks: NormalizedLandmark[][], faceLandma
 		return isCoveringFace && (isHorizontal || isVerticalAndGrouped);
 	};
 
-	return handLandmarks.some(hand => isNoseHoldHand(hand));
+	const isShooingGunHand = (hand: NormalizedLandmark[]) => {
+		const wrist = hand[0];
+
+		// Index and Thumb must be extended (tip further from wrist than their base joints)
+		const indexExtended = getDist(hand[8], wrist) > getDist(hand[5], wrist);
+		const thumbExtended = getDist(hand[4], wrist) > getDist(hand[2], wrist);
+		
+		// The spread between thumb and index must be wide (not a pinch)
+		const spread = getDist(hand[4], hand[8]);
+
+		// This generously accepts both a "Gun" shape and a "Flat Shooing" shape
+		return indexExtended && thumbExtended && spread > 0.12;
+	};
+
+	const hand0 = handLandmarks[0];
+	const hand1 = handLandmarks[1];
+
+	// Check if either hand combo fulfills the Dual-Gesture requirement
+	const match1 = isNoseHoldHand(hand0) && isShooingGunHand(hand1);
+	const match2 = isNoseHoldHand(hand1) && isShooingGunHand(hand0);
+
+	return match1 || match2;
 }
