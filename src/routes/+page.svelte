@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { VisionEngine } from '$lib/core/VisionEngine.svelte';
 
@@ -8,9 +8,13 @@
 	
 	const engine = new VisionEngine();
 
-	onMount(() => {
+	// We use a manual start button to satisfy browser autoplay policies for unmuted audio
+	let hasStarted = $state(false);
+
+	function startSystem() {
+		hasStarted = true;
 		engine.initialize(videoElement, canvasElement);
-	});
+	}
 
 	onDestroy(() => {
 		engine.destroy();
@@ -32,7 +36,10 @@
 
 		<!-- Status Badge -->
 		<div class="flex items-center gap-2 bg-slate-900/60 backdrop-blur-md px-4 py-2 rounded-full border border-slate-800/50 shadow-xl">
-			{#if engine.error}
+			{#if !hasStarted}
+				<div class="w-2 h-2 rounded-full bg-slate-500 animate-pulse"></div>
+				<span class="text-sm font-semibold text-slate-400">Standby</span>
+			{:else if engine.error}
 				<div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
 				<span class="text-sm font-semibold text-red-400">Error</span>
 			{:else if engine.isReady}
@@ -65,8 +72,23 @@
 				class="absolute inset-0 w-full h-full object-cover pointer-events-none"
 			></canvas>
 
+			<!-- Start Overlay (To unlock browser audio playback) -->
+			{#if !hasStarted}
+				<div class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-md z-30">
+					<button 
+						onclick={startSystem}
+						class="px-8 py-4 bg-gradient-to-r from-pink-500 to-violet-500 rounded-full font-bold text-xl tracking-wide shadow-[0_0_40px_rgba(236,72,153,0.4)] hover:scale-105 hover:shadow-[0_0_60px_rgba(236,72,153,0.6)] transition-all cursor-pointer"
+					>
+						INITIALIZE SYSTEM
+					</button>
+					<p class="mt-6 text-slate-400 font-medium text-sm text-center max-w-sm">
+						Clicking this button unlocks audio playback and allows the AI engine to access your camera.
+					</p>
+				</div>
+			{/if}
+
 			<!-- Loading Overlay -->
-			{#if !engine.isReady && !engine.error}
+			{#if hasStarted && !engine.isReady && !engine.error}
 				<div class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-sm z-20">
 					<div class="w-12 h-12 border-4 border-slate-700 border-t-pink-500 rounded-full animate-spin"></div>
 					<p class="mt-4 text-slate-400 font-medium">Loading Vision Models...</p>
@@ -89,14 +111,15 @@
 		</div>
 
 		<!-- The Absolute Cinema Output Container -->
-		<div class="w-full max-w-3xl h-64 shrink-0 flex items-center justify-center pointer-events-none">
+		<div class="w-full max-w-3xl h-64 shrink-0 flex items-center justify-center">
 			{#if engine.isAbsoluteCinema}
 				<div transition:scale="{{ start: 0.8, duration: 400, opacity: 0 }}">
-					<img 
-						src="/absolute-cinema.gif" 
-						alt="Absolute Cinema" 
+					<video 
+						src="/absolute-cinema.mp4" 
+						autoplay
+						playsinline
 						class="h-64 object-contain rounded-xl shadow-[0_0_150px_rgba(236,72,153,0.4)] drop-shadow-[0_0_50px_rgba(139,92,246,0.6)]"
-					/>
+					></video>
 				</div>
 			{/if}
 		</div>
