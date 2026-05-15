@@ -73,41 +73,31 @@ export function isAbsoluteCinemaPose(landmarks: NormalizedLandmark[][]): boolean
  * Hand 2: Gun/Shooing shape (thumb extended, index extended, others curled).
  */
 export function isScubaCatPose(landmarks: NormalizedLandmark[][]): boolean {
-	if (!landmarks || landmarks.length !== 2) return false;
+	// We only need at least 1 hand visible now
+	if (!landmarks || landmarks.length === 0) return false;
 
 	const getDist = (p1: NormalizedLandmark, p2: NormalizedLandmark) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
-	const isPinchNoseHand = (hand: NormalizedLandmark[]) => {
+	const isNoseHoldHand = (hand: NormalizedLandmark[]) => {
 		const wrist = hand[0];
+		
+		// 1. Hand must be raised (covering the face). 
+		// Y=0 is the top of the screen. If Y > 0.8, the hand is down near the chest/waist.
+		if (wrist.y > 0.8) return false;
+
+		// 2. Is the hand cupping the mouth or pinching the nose?
+		// Pinch check:
 		const pinchDist = getDist(hand[4], hand[8]); // Thumb tip to Index tip
 		
-		// Are fingers curled into a fist? (Middle and Ring tips closer to wrist than their MCP joints)
+		// Curl check (fist/cupping): Are the finger tips pulled in toward the wrist?
+		const indexCurled = getDist(hand[8], wrist) < getDist(hand[5], wrist) + 0.05;
 		const middleCurled = getDist(hand[12], wrist) < getDist(hand[9], wrist) + 0.05;
 		const ringCurled = getDist(hand[16], wrist) < getDist(hand[13], wrist) + 0.05;
 		
-		// Forgiving check: Distance is small (pinching nose) OR hand is a fist (covering mouth)
-		return pinchDist < 0.15 || (middleCurled && ringCurled);
+		// Extremely forgiving: It's either a pinch, OR at least two fingers are curled to cup the mouth
+		return pinchDist < 0.20 || (middleCurled && ringCurled) || (indexCurled && middleCurled);
 	};
 
-	const isShooingGunHand = (hand: NormalizedLandmark[]) => {
-		const wrist = hand[0];
-
-		// Index and Thumb must be extended (tip further from wrist than their base joints)
-		const indexExtended = getDist(hand[8], wrist) > getDist(hand[5], wrist);
-		const thumbExtended = getDist(hand[4], wrist) > getDist(hand[2], wrist);
-		
-		// The spread between thumb and index must be wide (not a pinch)
-		const spread = getDist(hand[4], hand[8]);
-
-		// This generously accepts both a "Gun" shape and a "Flat Shooing" shape
-		return indexExtended && thumbExtended && spread > 0.12;
-	};
-
-	const hand0 = landmarks[0];
-	const hand1 = landmarks[1];
-
-	const match1 = isPinchNoseHand(hand0) && isShooingGunHand(hand1);
-	const match2 = isPinchNoseHand(hand1) && isShooingGunHand(hand0);
-
-	return match1 || match2;
+	// Return true if ANY hand in the frame matches the nose-hold shape
+	return landmarks.some(hand => isNoseHoldHand(hand));
 }
