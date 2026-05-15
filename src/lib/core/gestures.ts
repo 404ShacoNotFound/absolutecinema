@@ -40,5 +40,29 @@ export function isAbsoluteCinemaPose(landmarks: NormalizedLandmark[][]): boolean
 		}
 	}
 
-	return handsValid === 2;
+	if (handsValid !== 2) {
+		return false;
+	}
+
+	// 4. Check alignment (both hands roughly at same height)
+	// y coordinates are normalized 0-1, so 0.25 represents 25% of the video height
+	const yDiff = Math.abs(landmarks[0][0].y - landmarks[1][0].y);
+	if (yDiff > 0.25) {
+		return false; // Hands are not aligned
+	}
+
+	// 5. Check if palms are facing forward
+	// When hands are raised and palms face forward, thumbs point inward towards each other.
+	// This means the distance between the two thumbs should be LESS than the distance between the two pinkies.
+	// If the back of the hands are facing the camera, the pinkies point inward, reversing the distance.
+	const getDist = (p1: NormalizedLandmark, p2: NormalizedLandmark) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
+	
+	const thumbDist = getDist(landmarks[0][4], landmarks[1][4]);
+	const pinkyDist = getDist(landmarks[0][20], landmarks[1][20]);
+
+	if (thumbDist >= pinkyDist) {
+		return false; // Back of hands are facing the camera
+	}
+
+	return true;
 }
