@@ -72,17 +72,19 @@ export function isAbsoluteCinemaPose(landmarks: NormalizedLandmark[][]): boolean
  * Hand 1: Pinching nose (thumb and index close together).
  * Hand 2: Gun/Shooing shape (thumb extended, index extended, others curled).
  */
-export function isScubaCatPose(landmarks: NormalizedLandmark[][]): boolean {
-	if (!landmarks || landmarks.length === 0) return false;
+export function isScubaCatPose(handLandmarks: NormalizedLandmark[][], faceLandmarks?: NormalizedLandmark[][]): boolean {
+	if (!handLandmarks || handLandmarks.length === 0) return false;
+	
+	// Ensure we have a face detected to verify the hand is actually covering the mouth/nose
+	if (!faceLandmarks || faceLandmarks.length === 0) return false;
+
+	const face = faceLandmarks[0];
+	const noseTip = face[1]; // Nose tip in MediaPipe Face Mesh
 
 	const getDist = (p1: NormalizedLandmark, p2: NormalizedLandmark) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
 	const isNoseHoldHand = (hand: NormalizedLandmark[]) => {
 		const wrist = hand[0];
-		
-		// Hand must be high up (near the face area)
-		if (wrist.y > 0.65) return false;
-
 		const palmLength = getDist(wrist, hand[9]);
 		const middleTip = hand[12];
 
@@ -103,8 +105,17 @@ export function isScubaCatPose(landmarks: NormalizedLandmark[][]): boolean {
 		const indexPinkySpread = getDist(hand[8], hand[20]);
 		const isVerticalAndGrouped = (dy >= dx) && (indexPinkySpread < palmLength * 1.5);
 
-		return isHorizontal || isVerticalAndGrouped;
+		// SPATIAL INTERSECTION CHECK
+		// Check if the palm center (joint 9) is physically close to the nose tip on screen.
+		const palmCenter = hand[9];
+		const distToFace = getDist(palmCenter, noseTip);
+		
+		// If the hand is covering the face, the palm center should be very close to the nose tip.
+		// If the palm center is within 0.15 of the nose tip, the hand is physically over the face.
+		const isCoveringFace = distToFace < 0.15;
+
+		return isCoveringFace && (isHorizontal || isVerticalAndGrouped);
 	};
 
-	return landmarks.some(hand => isNoseHoldHand(hand));
+	return handLandmarks.some(hand => isNoseHoldHand(hand));
 }

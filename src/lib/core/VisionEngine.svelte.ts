@@ -1,4 +1,4 @@
-import { FilesetResolver, HandLandmarker, type HandLandmarkerResult } from '@mediapipe/tasks-vision';
+import { FilesetResolver, HandLandmarker, type HandLandmarkerResult, FaceLandmarker, type FaceLandmarkerResult } from '@mediapipe/tasks-vision';
 import { isAbsoluteCinemaPose, isScubaCatPose } from './gestures';
 
 export class VisionEngine {
@@ -10,6 +10,7 @@ export class VisionEngine {
 
 	// Internal references
 	private landmarker: HandLandmarker | null = null;
+	private faceLandmarker: FaceLandmarker | null = null;
 	private stream: MediaStream | null = null;
 	private videoElement: HTMLVideoElement | null = null;
 	private canvasElement: HTMLCanvasElement | null = null;
@@ -43,7 +44,6 @@ export class VisionEngine {
 				'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
 			);
 
-			// 2. Initialize HandLandmarker
 			this.landmarker = await HandLandmarker.createFromOptions(vision, {
 				baseOptions: {
 					modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
@@ -54,6 +54,15 @@ export class VisionEngine {
 				minHandDetectionConfidence: 0.65,
 				minHandPresenceConfidence: 0.65,
 				minTrackingConfidence: 0.65
+			});
+
+			this.faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+				baseOptions: {
+					modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+					delegate: 'GPU'
+				},
+				runningMode: 'VIDEO',
+				numFaces: 1
 			});
 
 			// 3. Start Webcam
@@ -83,7 +92,7 @@ export class VisionEngine {
 	}
 
 	private startInferenceLoop = () => {
-		if (!this.videoElement || !this.landmarker || !this.canvasCtx || !this.canvasElement) return;
+		if (!this.videoElement || !this.landmarker || !this.faceLandmarker || !this.canvasCtx || !this.canvasElement) return;
 
 		const startTimeMs = performance.now();
 		
@@ -91,25 +100,26 @@ export class VisionEngine {
 		if (this.lastVideoTime !== this.videoElement.currentTime) {
 			this.lastVideoTime = this.videoElement.currentTime;
 			
-			const results = this.landmarker.detectForVideo(this.videoElement, startTimeMs);
+			const handResults = this.landmarker.detectForVideo(this.videoElement, startTimeMs);
+			const faceResults = this.faceLandmarker.detectForVideo(this.videoElement, startTimeMs);
 			
 			// Process results
-			this.processResults(results);
-			this.drawOverlay(results);
+			this.processResults(handResults, faceResults);
+			this.drawOverlay(handResults); // We only draw hands for the UI
 		}
 
 		// Continue the loop
 		this.animationFrameId = requestAnimationFrame(this.startInferenceLoop);
 	}
 
-	private processResults(results: HandLandmarkerResult) {
-		if (results.landmarks && results.landmarks.length > 0) {
-			if (isAbsoluteCinemaPose(results.landmarks)) {
+	private processResults(handResults: HandLandmarkerResult, faceResults: FaceLandmarkerResult) {
+		if (handResults.landmarks && handResults.landmarks.length > 0) {
+			if (isAbsoluteCinemaPose(handResults.landmarks)) {
 				this.consecutivePoseFrames++;
 				if (this.consecutivePoseFrames >= this.REQUIRED_FRAMES) {
 					this.triggerAbsoluteCinema();
 				}
-			} else if (isScubaCatPose(results.landmarks)) {
+			} else if (isScubaCatPose(handResults.landmarks, faceResults.faceLandmarks)) {
 				this.consecutivePoseFrames++;
 				if (this.consecutivePoseFrames >= this.REQUIRED_FRAMES) {
 					this.triggerScubaCat();
@@ -208,6 +218,10 @@ export class VisionEngine {
 		
 		if (this.landmarker) {
 			this.landmarker.close();
+		}
+
+		if (this.faceLandmarker) {
+			this.faceLandmarker.close();
 		}
 	}
 }
