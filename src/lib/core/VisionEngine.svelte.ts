@@ -47,9 +47,16 @@ export class VisionEngine {
 			});
 
 			// 3. Start Webcam
-			this.stream = await navigator.mediaDevices.getUserMedia({
-				video: { width: 1280, height: 720, facingMode: 'user' }
-			});
+			try {
+				this.stream = await navigator.mediaDevices.getUserMedia({
+					video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+				});
+			} catch (fallbackError) {
+				// Fallback for virtual webcams or devices that don't support facingMode
+				this.stream = await navigator.mediaDevices.getUserMedia({
+					video: true
+				});
+			}
 			this.videoElement.srcObject = this.stream;
 			this.videoElement.play();
 
