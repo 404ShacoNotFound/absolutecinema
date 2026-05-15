@@ -45,10 +45,10 @@ export function isAbsoluteCinemaPose(landmarks: NormalizedLandmark[][]): boolean
 	}
 
 	// 4. Check alignment (both hands roughly at same height)
-	// y coordinates are normalized 0-1, so 0.25 represents 25% of the video height
+	// y coordinates are normalized 0-1, so 0.10 represents 10% of the video height
 	const yDiff = Math.abs(landmarks[0][0].y - landmarks[1][0].y);
-	if (yDiff > 0.25) {
-		return false; // Hands are not aligned
+	if (yDiff > 0.10) {
+		return false; // Hands are not aligned closely enough
 	}
 
 	// 5. Check if palms are facing forward
