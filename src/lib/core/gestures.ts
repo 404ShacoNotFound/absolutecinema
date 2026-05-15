@@ -164,20 +164,21 @@ export function isKoreanHeartPose(landmarks: NormalizedLandmark[][]): boolean {
 			return false;
 		}
 
-		// 2. PINCH/CROSS CHECK: Thumb tip and Index tip must be touching/overlapping.
-		// A distance of 0.3x palm length is extremely close.
-		const tipsDist = getDist(thumbTip, indexTip);
-		const areTipsTouching = tipsDist < palmLength * 0.3;
+		// 2. DEEP CROSS CHECK: Thumb tip must be touching the index finger.
+		// In a "proper standing Korean Heart", the index finger curls over the thumb deeply.
+		// This means the thumb tip (4) rests against the middle joint of the index finger (6), NOT the tip (8).
+		const distToTip = getDist(thumbTip, indexTip);
+		const distToPIP = getDist(thumbTip, hand[6]);
+		const areTipsTouching = Math.min(distToTip, distToPIP) < palmLength * 0.4;
 
-		// 3. RAISED FROM PALM: The crossed fingers must be held UP away from the palm.
-		// In a clenched fist, the index tip is crushed against the palm center. 
-		// In a Korean Heart, the pinch is formed at the top of the hand.
-		const indexRaised = getDist(indexTip, palmCenter) > palmLength * 0.5;
+		// 3. FIST REJECTION (INDEX SEPARATION):
+		// In a completely clenched fist, the index tip is crushed right next to the middle tip.
+		// In a Korean Heart, the middle finger is curled into the palm, but the index finger 
+		// is held OUT to cross with the thumb. This means the index tip is significantly separated 
+		// from the middle tip, regardless of camera perspective or 3D tilt.
+		const isIndexSeparated = getDist(indexTip, middleTip) > palmLength * 0.4;
 
-		// We no longer check Y-axis overlap or absolute extension distance,
-		// because if you point the heart at the camera, foreshortening compresses those 2D values.
-		// If the other fingers are curled, the tips are touching, and the tips are raised, it IS a Korean Heart!
-		return areTipsTouching && indexRaised;
+		return areTipsTouching && isIndexSeparated;
 	};
 
 	// Accepts the gesture if ANY hand on screen is doing the Korean Heart
