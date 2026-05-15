@@ -145,17 +145,23 @@ export function isScubaCatPose(handLandmarks: NormalizedLandmark[][], faceLandma
 	};
 
 	const isShooingGunHand = (hand: NormalizedLandmark[]) => {
-		const wrist = hand[0];
+		// User requested a simple vertical hand check: thumb is above index, middle, ring, and pinky.
+		// This represents a "sideways" hand (like a karate chop or shooing motion), 
+		// regardless of whether the fingers are curled or extended.
+		const thumbBase = hand[2];
+		const indexBase = hand[5];
+		const middleBase = hand[9];
+		const ringBase = hand[13];
+		const pinkyBase = hand[17];
 
-		// Index and Thumb must be extended (tip further from wrist than their base joints)
-		const indexExtended = getDist(hand[8], wrist) > getDist(hand[5], wrist);
-		const thumbExtended = getDist(hand[4], wrist) > getDist(hand[2], wrist);
-		
-		// The spread between thumb and index must be wide (not a pinch)
-		const spread = getDist(hand[4], hand[8]);
+		// Y-coordinates: smaller means higher on the screen.
+		// We simply check if the bases of the fingers form a vertical stack from top to bottom.
+		const isThumbHighest = thumbBase.y < indexBase.y;
+		const isIndexAboveMiddle = indexBase.y < middleBase.y;
+		const isMiddleAboveRing = middleBase.y < ringBase.y;
+		const isRingAbovePinky = ringBase.y < pinkyBase.y;
 
-		// This generously accepts both a "Gun" shape and a "Flat Shooing" shape
-		return indexExtended && thumbExtended && spread > 0.12;
+		return isThumbHighest && isIndexAboveMiddle && isMiddleAboveRing && isRingAbovePinky;
 	};
 
 	const hand0 = handLandmarks[0];
