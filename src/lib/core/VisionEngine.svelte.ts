@@ -20,6 +20,16 @@ export class VisionEngine {
 	// Debounce mechanics
 	private consecutivePoseFrames = 0;
 	private readonly REQUIRED_FRAMES = 5; // Require 5 consecutive frames of the pose to trigger
+	public isCooldown = $state(false);
+	private cooldownTimer: ReturnType<typeof setTimeout> | null = null;
+
+	public startCooldown(ms: number = 2000) {
+		this.isCooldown = true;
+		if (this.cooldownTimer) clearTimeout(this.cooldownTimer);
+		this.cooldownTimer = setTimeout(() => {
+			this.isCooldown = false;
+		}, ms);
+	}
 
 	async initialize(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
 		this.videoElement = video;
@@ -109,7 +119,7 @@ export class VisionEngine {
 	}
 
 	private triggerAbsoluteCinema() {
-		if (this.isAbsoluteCinema) return; // Wait until the current video finishes
+		if (this.isAbsoluteCinema || this.isCooldown) return; // Wait until video finishes and cooldown clears
 		this.isAbsoluteCinema = true;
 	}
 
@@ -181,6 +191,7 @@ export class VisionEngine {
 	destroy() {
 		// Clean up memory and hardware
 		if (this.animationFrameId !== null) cancelAnimationFrame(this.animationFrameId);
+		if (this.cooldownTimer) clearTimeout(this.cooldownTimer);
 		
 		if (this.stream) {
 			this.stream.getTracks().forEach(track => track.stop());

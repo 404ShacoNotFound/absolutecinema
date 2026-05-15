@@ -125,8 +125,8 @@
 				src="/absolute-cinema.mp4" 
 				autoplay
 				playsinline
-				onended={() => { engine.isAbsoluteCinema = false; }}
-				class="w-full max-w-4xl rounded-2xl shadow-[16px_16px_0px_0px_rgba(30,41,59,1)] border-8 border-black bg-black"
+				onended={() => { engine.isAbsoluteCinema = false; engine.startCooldown(2000); }}
+				class="w-full max-w-4xl rounded-2xl shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] border-8 border-black bg-black"
 			></video>
 		</div>
 	{/if}
