@@ -20,7 +20,8 @@ export class VisionEngine {
 	private lastVideoTime = -1;
 
 	// Debounce mechanics
-	private consecutivePoseFrames = 0;
+	private consecutiveCinemaFrames = 0;
+	private consecutiveScubaFrames = 0;
 	private readonly REQUIRED_FRAMES = 3; // Reduced from 5 to 3 for better responsiveness on slow/dark webcams
 	public isCooldown = $state(false);
 	private cooldownTimer: ReturnType<typeof setTimeout> | null = null;
@@ -117,21 +118,28 @@ export class VisionEngine {
 
 	private processResults(handResults: HandLandmarkerResult, faceResults: FaceLandmarkerResult) {
 		if (handResults.landmarks && handResults.landmarks.length > 0) {
-			if (isAbsoluteCinemaPose(handResults.landmarks)) {
-				this.consecutivePoseFrames++;
-				if (this.consecutivePoseFrames >= this.REQUIRED_FRAMES) {
-					this.triggerAbsoluteCinema();
-				}
-			} else if (isScubaCatPose(handResults.landmarks, faceResults.faceLandmarks)) {
-				this.consecutivePoseFrames++;
-				if (this.consecutivePoseFrames >= this.REQUIRED_FRAMES) {
+			const isScuba = isScubaCatPose(handResults.landmarks, faceResults.faceLandmarks);
+			const isCinema = isAbsoluteCinemaPose(handResults.landmarks);
+
+			if (isScuba) {
+				this.consecutiveScubaFrames++;
+				this.consecutiveCinemaFrames = 0;
+				if (this.consecutiveScubaFrames >= this.REQUIRED_FRAMES) {
 					this.triggerScubaCat();
 				}
+			} else if (isCinema) {
+				this.consecutiveCinemaFrames++;
+				this.consecutiveScubaFrames = 0;
+				if (this.consecutiveCinemaFrames >= this.REQUIRED_FRAMES) {
+					this.triggerAbsoluteCinema();
+				}
 			} else {
-				this.consecutivePoseFrames = 0;
+				this.consecutiveCinemaFrames = 0;
+				this.consecutiveScubaFrames = 0;
 			}
 		} else {
-			this.consecutivePoseFrames = 0;
+			this.consecutiveCinemaFrames = 0;
+			this.consecutiveScubaFrames = 0;
 		}
 	}
 
