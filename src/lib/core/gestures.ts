@@ -85,32 +85,6 @@ export function isScubaCatPose(handLandmarks: NormalizedLandmark[][], faceLandma
 	const getDist = (p1: NormalizedLandmark, p2: NormalizedLandmark) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
 	const isNoseHoldHand = (hand: NormalizedLandmark[]) => {
-		const wrist = hand[0];
-		const palmLength = getDist(wrist, hand[9]);
-		const middleTip = hand[12];
-
-		// Check if the hand is generally extended (not a clinched fist)
-		const middleExtended = getDist(middleTip, hand[9]) > palmLength * 0.8;
-		if (!middleExtended) return false;
-
-		// Calculate the direction the hand is pointing
-		const dx = Math.abs(middleTip.x - wrist.x);
-		const dy = Math.abs(middleTip.y - wrist.y);
-
-		// CONDITION A: Hand is Horizontal (pointing sideways across the mouth/nose)
-		const isHorizontal = dx > dy;
-
-		// CONDITION B: Hand is Vertical (palm covering mouth) but fingers are grouped together.
-		// If fingers are spread wide (splayed), the distance between index and pinky is large.
-		// If grouped tightly over the mouth, the spread is small.
-		const indexPinkySpread = getDist(hand[8], hand[20]);
-		const isVerticalAndGrouped = (dy >= dx) && (indexPinkySpread < palmLength * 1.5);
-
-		// SPATIAL INTERSECTION CHECK - POINT CLOUD PROXIMITY
-		// A bounding box is flawed because a single raised finger creates a huge empty box.
-		// Instead, we measure the minimum distance from the face features to the actual 21 joints of the hand.
-		// If the hand is physically covering a feature, at least one joint MUST be very close to it.
-		
 		const isFeatureCovered = (feature: NormalizedLandmark, maxDistance: number) => {
 			let minD = Infinity;
 			for (const joint of hand) {
@@ -124,24 +98,17 @@ export function isScubaCatPose(handLandmarks: NormalizedLandmark[][], faceLandma
 		const lowerLip = face[14];
 
 		// Define a 'Face Unit' based on the physical size of the user's face in the video feed.
-		// The distance between the nose tip and the upper lip is a perfect scale reference.
 		const faceUnit = getDist(noseTip, upperLip);
-
-		// The tolerance for a joint to be considered "covering" the feature is 1.2x the face unit.
-		// This is generous enough to allow the hand's bones to bridge across the features,
-		// but STRICT enough to instantly fail if the hand is placed anywhere else (e.g. the chin, 
-		// which is 3.0x face units away from the nose).
 		const tolerance = faceUnit * 1.2;
 
 		const isNoseCovered = isFeatureCovered(noseTip, tolerance);
 		const isMouthCovered = isFeatureCovered(upperLip, tolerance) || isFeatureCovered(lowerLip, tolerance);
 
-		// The user explicitly requested that BOTH the nose and the mouth must be covered.
-		// Because this uses Face-Scale relative distance, it mathematically eliminates 
-		// "hand under chin" false positives for ANY user at ANY distance from the camera.
-		const isCoveringFace = isNoseCovered && isMouthCovered;
-
-		return isCoveringFace && (isHorizontal || isVerticalAndGrouped);
+		// Because the spatial tolerance is so perfectly sealed to the face, 
+		// we no longer need to enforce geometric shapes (like extended fingers).
+		// Whether they use their left hand flat, or right hand pinched into a fist, 
+		// if the physical mass of the hand is on the nose and mouth, it passes!
+		return isNoseCovered && isMouthCovered;
 	};
 
 	const isShooingGunHand = (hand: NormalizedLandmark[]) => {
