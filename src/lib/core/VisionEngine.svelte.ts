@@ -130,8 +130,8 @@ export class VisionEngine {
 		if (results.landmarks) {
 			for (const landmarks of results.landmarks) {
 				// Draw the connections (bones)
-				this.canvasCtx.strokeStyle = '#00ff88'; // Tech green
-				this.canvasCtx.lineWidth = 4;
+				this.canvasCtx.strokeStyle = '#000000'; // Black
+				this.canvasCtx.lineWidth = 6;
 				
 				// A simplified skeleton drawing logic
 				const drawLine = (startIdx: number, endIdx: number) => {
@@ -156,17 +156,22 @@ export class VisionEngine {
 				drawLine(0, 17); drawLine(17, 18); drawLine(18, 19); drawLine(19, 20);
 
 				// Draw nodes (joints)
-				this.canvasCtx.fillStyle = '#ff0055'; // Vibrant pink/red
 				for (const landmark of landmarks) {
+					this.canvasCtx.fillStyle = '#ffffff'; // White inner
 					this.canvasCtx.beginPath();
 					this.canvasCtx.arc(
 						landmark.x * this.canvasElement.width,
 						landmark.y * this.canvasElement.height,
-						6,
+						8,
 						0,
 						2 * Math.PI
 					);
 					this.canvasCtx.fill();
+					
+					// Black border for cartoon effect
+					this.canvasCtx.lineWidth = 3;
+					this.canvasCtx.strokeStyle = '#000000';
+					this.canvasCtx.stroke();
 				}
 			}
 		}

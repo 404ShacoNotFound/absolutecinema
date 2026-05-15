@@ -8,11 +8,12 @@
 	
 	const engine = new VisionEngine();
 
-	// We use a manual start button to satisfy browser autoplay policies for unmuted audio
 	let hasStarted = $state(false);
 
 	function startSystem() {
 		hasStarted = true;
+		// Proactive cache loading to prevent buffering on first trigger
+		fetch('/absolute-cinema.mp4');
 		engine.initialize(videoElement, canvasElement);
 	}
 
@@ -21,46 +22,51 @@
 	});
 </script>
 
-<div class="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-pink-500/30 overflow-hidden relative">
+<svelte:head>
+	<link rel="preload" as="video" href="/absolute-cinema.mp4" type="video/mp4" />
+</svelte:head>
+
+<div class="min-h-screen bg-slate-50 text-black font-sans selection:bg-black selection:text-white overflow-hidden relative border-8 border-black">
 	
 	<!-- Header -->
 	<header class="absolute top-0 left-0 w-full p-6 z-10 flex justify-between items-start pointer-events-none">
 		<div>
-			<h1 class="text-3xl font-black tracking-tighter bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">
+			<h1 class="text-4xl font-black uppercase tracking-tighter text-black" style="text-shadow: 3px 3px 0px rgba(0,0,0,0.2);">
 				Absolute Cinema
 			</h1>
-			<p class="text-sm text-slate-400 font-medium mt-1 uppercase tracking-widest">
-				Gesture Recognition Engine
+			<p class="text-sm text-black font-bold mt-1 uppercase tracking-widest bg-yellow-300 inline-block px-2 border-2 border-black border-dashed">
+				Gesture Recognition
 			</p>
 		</div>
 
 		<!-- Status Badge -->
-		<div class="flex items-center gap-2 bg-slate-900/60 backdrop-blur-md px-4 py-2 rounded-full border border-slate-800/50 shadow-xl">
+		<div class="flex items-center gap-2 bg-white px-4 py-2 rounded-full border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
 			{#if !hasStarted}
-				<div class="w-2 h-2 rounded-full bg-slate-500 animate-pulse"></div>
-				<span class="text-sm font-semibold text-slate-400">Standby</span>
+				<div class="w-3 h-3 rounded-full bg-black animate-pulse"></div>
+				<span class="text-sm font-black uppercase tracking-wider">Standby</span>
 			{:else if engine.error}
-				<div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-				<span class="text-sm font-semibold text-red-400">Error</span>
+				<div class="w-3 h-3 rounded-full bg-red-500 animate-pulse border-2 border-black"></div>
+				<span class="text-sm font-black uppercase tracking-wider text-red-600">Error</span>
 			{:else if engine.isReady}
-				<div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-				<span class="text-sm font-semibold text-emerald-400">System Ready</span>
+				<div class="w-3 h-3 rounded-full bg-green-400 animate-pulse border-2 border-black"></div>
+				<span class="text-sm font-black uppercase tracking-wider">System Ready</span>
 			{:else}
-				<div class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></div>
-				<span class="text-sm font-semibold text-amber-400">Initializing...</span>
+				<div class="w-3 h-3 rounded-full bg-yellow-400 animate-pulse border-2 border-black"></div>
+				<span class="text-sm font-black uppercase tracking-wider">Initializing...</span>
 			{/if}
 		</div>
 	</header>
 
 	<!-- Main Stage -->
-	<main class="relative w-full h-screen flex items-center justify-center p-8">
+	<!-- Background uses a subtle dot pattern to give a comic book vibe -->
+	<main class="relative w-full h-screen flex items-center justify-center p-8 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiNjY2MiLz48L3N2Zz4=')]">
 		<!-- Camera Feed Container -->
-		<div class="relative w-full max-w-5xl aspect-video rounded-3xl overflow-hidden shadow-2xl shadow-pink-500/10 border border-slate-800/60 bg-slate-900">
+		<div class="relative w-full max-w-5xl aspect-video rounded-2xl overflow-hidden shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] border-4 border-black bg-white">
 			
 			<!-- Video element (Mirrored horizontally) -->
 			<video 
 				bind:this={videoElement}
-				class="absolute inset-0 w-full h-full object-cover -scale-x-100 opacity-60 mix-blend-screen"
+				class="absolute inset-0 w-full h-full object-cover -scale-x-100"
 				playsinline 
 				muted
 				autoplay
@@ -74,47 +80,41 @@
 
 			<!-- Start Overlay (To unlock browser audio playback) -->
 			{#if !hasStarted}
-				<div class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-md z-30">
+				<div class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm z-30">
 					<button 
 						onclick={startSystem}
-						class="px-8 py-4 bg-gradient-to-r from-pink-500 to-violet-500 rounded-full font-bold text-xl tracking-wide shadow-[0_0_40px_rgba(236,72,153,0.4)] hover:scale-105 hover:shadow-[0_0_60px_rgba(236,72,153,0.6)] transition-all cursor-pointer"
+						class="px-8 py-4 bg-yellow-400 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-1 hover:translate-y-1 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-xl font-black uppercase text-2xl tracking-wide transition-all cursor-pointer"
 					>
-						INITIALIZE SYSTEM
+						START CAMERA
 					</button>
-					<p class="mt-6 text-slate-400 font-medium text-sm text-center max-w-sm">
-						Clicking this button unlocks audio playback and allows the AI engine to access your camera.
+					<p class="mt-6 text-black font-bold text-sm text-center max-w-sm uppercase bg-white border-2 border-black p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+						Clicking this unlocks audio playback and allows the AI engine to access your camera.
 					</p>
 				</div>
 			{/if}
 
 			<!-- Loading Overlay -->
 			{#if hasStarted && !engine.isReady && !engine.error}
-				<div class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-sm z-20">
-					<div class="w-12 h-12 border-4 border-slate-700 border-t-pink-500 rounded-full animate-spin"></div>
-					<p class="mt-4 text-slate-400 font-medium">Loading Vision Models...</p>
+				<div class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm z-20">
+					<div class="w-16 h-16 border-8 border-gray-200 border-t-black rounded-full animate-spin"></div>
+					<p class="mt-4 text-black font-black uppercase tracking-widest bg-yellow-300 px-4 py-1 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">Loading Vision Models...</p>
 				</div>
 			{/if}
 
 			<!-- Error Overlay -->
 			{#if engine.error}
-				<div class="absolute inset-0 flex flex-col items-center justify-center bg-red-950/80 backdrop-blur-sm z-20 text-center p-8">
-					<svg class="w-16 h-16 text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-					<p class="text-red-200 font-medium text-lg max-w-md">{engine.error}</p>
+				<div class="absolute inset-0 flex flex-col items-center justify-center bg-red-100 z-20 text-center p-8">
+					<svg class="w-20 h-20 text-red-600 mb-4 drop-shadow-[4px_4px_0px_rgba(0,0,0,1)]" fill="none" stroke="black" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+					<p class="text-black font-black uppercase text-lg max-w-md bg-white border-4 border-black p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">{engine.error}</p>
 				</div>
 			{/if}
-			
-			<!-- Decorative corners -->
-			<div class="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-pink-500/50 rounded-tl-3xl"></div>
-			<div class="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-violet-500/50 rounded-tr-3xl"></div>
-			<div class="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-pink-500/50 rounded-bl-3xl"></div>
-			<div class="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-violet-500/50 rounded-br-3xl"></div>
 		</div>
 	</main>
 
 	<!-- The Absolute Cinema Overlay -->
 	{#if engine.isAbsoluteCinema}
-		<!-- Dynamic Vignette/Darkening -->
-		<div class="absolute inset-0 bg-slate-950/80 backdrop-blur-md z-40 transition-all duration-500" transition:fade></div>
+		<!-- Simple Darkening Overlay -->
+		<div class="absolute inset-0 bg-black/80 z-40" transition:fade></div>
 		
 		<!-- MP4 Container -->
 		<div 
@@ -126,7 +126,7 @@
 				autoplay
 				playsinline
 				onended={() => { engine.isAbsoluteCinema = false; }}
-				class="w-full max-w-4xl rounded-xl shadow-[0_0_150px_rgba(236,72,153,0.4)] drop-shadow-[0_0_50px_rgba(139,92,246,0.6)]"
+				class="w-full max-w-4xl rounded-2xl shadow-[16px_16px_0px_0px_rgba(255,255,255,1)] border-8 border-white bg-black"
 			></video>
 		</div>
 	{/if}
