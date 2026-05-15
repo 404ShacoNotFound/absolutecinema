@@ -105,14 +105,29 @@ export function isScubaCatPose(handLandmarks: NormalizedLandmark[][], faceLandma
 		const indexPinkySpread = getDist(hand[8], hand[20]);
 		const isVerticalAndGrouped = (dy >= dx) && (indexPinkySpread < palmLength * 1.5);
 
-		// SPATIAL INTERSECTION CHECK
-		// Check if the palm center (joint 9) is physically close to the nose tip on screen.
-		const palmCenter = hand[9];
-		const distToFace = getDist(palmCenter, noseTip);
+		// SPATIAL INTERSECTION CHECK - BOUNDING BOX
+		// Find the 2D bounding box of the entire hand
+		let minX = 1, maxX = 0, minY = 1, maxY = 0;
+		for (const p of hand) {
+			if (p.x < minX) minX = p.x;
+			if (p.x > maxX) maxX = p.x;
+			if (p.y < minY) minY = p.y;
+			if (p.y > maxY) maxY = p.y;
+		}
+
+		// Add a slight 5% padding to be forgiving of camera angles
+		const padding = 0.05;
+		minX -= padding; maxX += padding;
+		minY -= padding; maxY += padding;
+
+		const upperLip = face[13]; // Landmark 13 is the top of the upper lip
+
+		// Check if the nose and mouth coordinates fall INSIDE the hand's bounding box
+		const noseInside = noseTip.x >= minX && noseTip.x <= maxX && noseTip.y >= minY && noseTip.y <= maxY;
+		const mouthInside = upperLip.x >= minX && upperLip.x <= maxX && upperLip.y >= minY && upperLip.y <= maxY;
 		
-		// If the hand is covering the face, the palm center should be very close to the nose tip.
-		// If the palm center is within 0.15 of the nose tip, the hand is physically over the face.
-		const isCoveringFace = distToFace < 0.15;
+		// It MUST physically cover both the nose and the mouth to prevent "under the chin" false positives
+		const isCoveringFace = noseInside && mouthInside;
 
 		return isCoveringFace && (isHorizontal || isVerticalAndGrouped);
 	};
