@@ -73,31 +73,41 @@ export function isAbsoluteCinemaPose(landmarks: NormalizedLandmark[][]): boolean
  * Hand 2: Gun/Shooing shape (thumb extended, index extended, others curled).
  */
 export function isScubaCatPose(landmarks: NormalizedLandmark[][]): boolean {
-	// We only need at least 1 hand visible now
 	if (!landmarks || landmarks.length === 0) return false;
 
 	const getDist = (p1: NormalizedLandmark, p2: NormalizedLandmark) => Math.hypot(p1.x - p2.x, p1.y - p2.y);
 
 	const isNoseHoldHand = (hand: NormalizedLandmark[]) => {
 		const wrist = hand[0];
-		
-		// 1. Hand must be raised (covering the face). 
-		// Y=0 is the top of the screen. If Y > 0.8, the hand is down near the chest/waist.
 		if (wrist.y > 0.8) return false;
 
-		// 2. Is the hand cupping the mouth or pinching the nose?
-		// Pinch check:
+		// Use the palm length (wrist to middle finger base) as a scale-invariant benchmark
+		const palmLength = getDist(wrist, hand[9]);
+
+		// Calculate straight-line distance from each fingertip to its own base joint (MCP)
+		// When fingers are extended, this distance is ~1.0 to 1.2x palmLength.
+		// When cupped or in a fist, this distance shrinks significantly.
+		const dIndex = getDist(hand[8], hand[5]);
+		const dMiddle = getDist(hand[12], hand[9]);
+		const dRing = getDist(hand[16], hand[13]);
+		const dPinky = getDist(hand[20], hand[17]);
+
+		// A finger is considered curled/cupped if its tip is close to its base
+		const indexCurled = dIndex < palmLength * 0.7;
+		const middleCurled = dMiddle < palmLength * 0.7;
+		const ringCurled = dRing < palmLength * 0.7;
+		const pinkyCurled = dPinky < palmLength * 0.7;
+
+		// 1. Is the whole hand cupped over the mouth? (All fingers curled)
+		const isCuppedHand = indexCurled && middleCurled && ringCurled && pinkyCurled;
+
+		// 2. Is it a tight nose pinch? (Thumb and Index touching, other fingers curled away)
 		const pinchDist = getDist(hand[4], hand[8]); // Thumb tip to Index tip
-		
-		// Curl check (fist/cupping): Are the finger tips pulled in toward the wrist?
-		const indexCurled = getDist(hand[8], wrist) < getDist(hand[5], wrist) + 0.05;
-		const middleCurled = getDist(hand[12], wrist) < getDist(hand[9], wrist) + 0.05;
-		const ringCurled = getDist(hand[16], wrist) < getDist(hand[13], wrist) + 0.05;
-		
-		// Extremely forgiving: It's either a pinch, OR at least two fingers are curled to cup the mouth
-		return pinchDist < 0.20 || (middleCurled && ringCurled) || (indexCurled && middleCurled);
+		const isTightPinch = (pinchDist < palmLength * 0.35) && middleCurled && ringCurled && pinkyCurled;
+
+		// It must mathematically be a curled cup or a tight pinch, not just an open raised hand.
+		return isCuppedHand || isTightPinch;
 	};
 
-	// Return true if ANY hand in the frame matches the nose-hold shape
 	return landmarks.some(hand => isNoseHoldHand(hand));
 }
