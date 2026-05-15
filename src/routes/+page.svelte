@@ -123,6 +123,7 @@
 			class="absolute inset-0 flex items-center justify-center z-50 pointer-events-auto"
 			transition:scale="{{ start: 0.8, duration: 400, opacity: 0 }}"
 		>
+			<!-- svelte-ignore a11y_media_has_caption -->
 			<video 
 				src="/absolute-cinema.mp4" 
 				autoplay
@@ -143,6 +144,7 @@
 			class="absolute inset-0 flex items-center justify-center z-50 pointer-events-auto"
 			transition:scale="{{ start: 0.8, duration: 400, opacity: 0 }}"
 		>
+			<!-- svelte-ignore a11y_media_has_caption -->
 			<video 
 				src="/scuba-cat.mp4" 
 				autoplay

@@ -5,6 +5,7 @@ export class VisionEngine {
 	// Reactive states
 	isReady = $state(false);
 	isAbsoluteCinema = $state(false);
+	public isScubaCat = $state(false);
 	error = $state<string | null>(null);
 
 	// Internal references
